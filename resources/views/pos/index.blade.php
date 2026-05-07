@@ -1,0 +1,169 @@
+@extends('layouts.app')
+
+@section('content')
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="brand-green m-0"><i class="bi bi-calculator"></i> Point of Sale</h2>
+    <a href="{{ route('dashboard') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Exit POS</a>
+</div>
+
+<div class="row align-items-start">
+    <div class="col-lg-7 col-xl-8 mb-4">
+        <div class="card shadow-sm border-0 bg-transparent">
+            <div class="card-body p-0">
+                <div class="row g-2">
+                    @forelse ($products as $product)
+                        <div class="col-6 col-md-4 col-xl-3">
+                            <button class="btn btn-outline-success w-100 h-100 p-3 text-start bg-white shadow-sm"
+                                    onclick="addToCart({{ $product->id }}, '{{ addslashes($product->name) }}', {{ $product->selling_price }}, {{ $product->stock_quantity }})"
+                                    style="border-width: 2px;">
+                                <div class="fw-bold text-dark text-truncate" style="font-size: 1.1rem;">{{ $product->name }}</div>
+                                <div class="text-success fw-bold my-1">Tsh {{ number_format($product->selling_price, 0) }}</div>
+                                <div class="text-muted small"><i class="bi bi-box"></i> Stock: {{ $product->stock_quantity }}</div>
+                            </button>
+                        </div>
+                    @empty
+                        <div class="col-12 text-center text-muted mt-5">
+                            <h4>No products in stock.</h4>
+                            <p>Please add products via the inventory manager.</p>
+                        </div>
+                    @endforelse
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5 col-xl-4 position-sticky" style="top: 20px;">
+        <div class="card shadow border-0 border-top border-success border-4">
+            <div class="card-header bg-white py-3">
+                <h4 class="mb-0 fw-bold"><i class="bi bi-cart3"></i> Current Sale</h4>
+            </div>
+            <div class="card-body p-0">
+                <div style="max-height: 40vh; overflow-y: auto;">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th>Item</th>
+                                <th class="text-center">Qty</th>
+                                <th class="text-end">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cart-items">
+                            <tr><td colspan="3" class="text-center text-muted py-4">Cart is empty. Tap items to add.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="p-3 bg-light border-top">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h3 class="m-0 text-muted">Total:</h3>
+                        <h2 class="m-0 text-danger fw-bold">Tsh <span id="grand-total">0.00</span></h2>
+                    </div>
+
+                    <form id="checkout-form" action="{{ route('pos.checkout') }}" method="POST">
+                        @csrf
+                        <div id="hidden-cart-inputs"></div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-muted small">Payment Method</label>
+                            <select name="payment_method" class="form-select form-select-lg" required>
+                                <option value="Cash">💵 Cash</option>
+                                <option value="Mobile Money">📱 Mobile Money</option>
+                            </select>
+                        </div>
+
+                        <button type="button" class="btn btn-success btn-lg w-100 fw-bold shadow-sm" onclick="submitSale()">
+                            <i class="bi bi-printer"></i> Print & Complete Sale
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endsection
+
+<script>
+    console.log("POS Script Loaded Perfectly!");
+    let cart = [];
+
+    function addToCart(id, name, price, maxStock) {
+        let existingItem = cart.find(item => item.product_id === id);
+
+        if (existingItem) {
+            if (existingItem.quantity < maxStock) {
+                existingItem.quantity += 1;
+            } else {
+                alert(`Cannot add more. Only ${maxStock} in stock.`);
+            }
+        } else {
+            cart.push({ product_id: id, name: name, price: price, quantity: 1, maxStock: maxStock });
+        }
+        console.log("Current Cart:", cart);
+        updateCartUI();
+    }
+
+    function updateQuantity(id, change) {
+        let item = cart.find(i => i.product_id === id);
+        if (item) {
+            item.quantity += change;
+            if (item.quantity <= 0) {
+                cart = cart.filter(i => i.product_id !== id);
+            } else if (item.quantity > item.maxStock) {
+                item.quantity = item.maxStock;
+            }
+        }
+        updateCartUI();
+    }
+
+    function updateCartUI() {
+        let tbody = document.getElementById('cart-items');
+        let totalSpan = document.getElementById('grand-total');
+
+        if (cart.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-4">Cart is empty. Tap items to add.</td></tr>';
+            totalSpan.innerText = '0.00';
+            return;
+        }
+
+        tbody.innerHTML = '';
+        let grandTotal = 0;
+
+        cart.forEach(item => {
+            let subtotal = item.price * item.quantity;
+            grandTotal += subtotal;
+
+            tbody.innerHTML += `
+                <tr>
+                    <td class="fw-bold text-truncate" style="max-width: 120px;">${item.name}</td>
+                    <td class="text-center">
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" class="btn btn-outline-secondary px-2" onclick="updateQuantity(${item.product_id}, -1)">-</button>
+                            <button type="button" class="btn btn-light px-3 fw-bold" disabled>${item.quantity}</button>
+                            <button type="button" class="btn btn-outline-secondary px-2" onclick="updateQuantity(${item.product_id}, 1)">+</button>
+                        </div>
+                    </td>
+                    <td class="text-end fw-bold">${subtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                </tr>
+            `;
+        });
+
+        totalSpan.innerText = grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function submitSale() {
+        if (cart.length === 0) {
+            alert("Please add items to the cart before checking out!");
+            return;
+        }
+
+        let container = document.getElementById('hidden-cart-inputs');
+        container.innerHTML = '';
+
+        cart.forEach((item, index) => {
+            container.innerHTML += `<input type="hidden" name="cart[${index}][product_id]" value="${item.product_id}">`;
+            container.innerHTML += `<input type="hidden" name="cart[${index}][quantity]" value="${item.quantity}">`;
+        });
+
+        document.getElementById('checkout-form').submit();
+    }
+</script>
