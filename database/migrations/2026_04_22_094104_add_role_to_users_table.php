@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->string('role')->default('cashier')->after('email'); // Default role is 'cashier'
+            $table->enum('role', ['admin', 'cashier'])->default('cashier')->after('email'); // Default role is 'cashier'
         });
     }
 
@@ -27,4 +27,3 @@ return new class extends Migration
     }
 };
 
-  

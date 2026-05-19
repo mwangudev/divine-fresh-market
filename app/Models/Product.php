@@ -14,7 +14,17 @@ class Product extends Model
         'selling_price',
         'stock_quantity',
         'unit_of_measure',
-        'description'
+        'description',
+        'brand_name',
+        'barcode',
+        'vat_percentage',
+        'base_unit',
+        'base_unit_value',
+        'min_stock_level',
+        'expiry_date',
+        'is_active',
+        'image',
+        
     ];
 
     public function category()

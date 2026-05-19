@@ -21,4 +21,18 @@ class Sale extends Model
     {
         return $this->hasMany(SaleItem::class);
     }
+
+    public function getProfitAttribute(){
+        // loop through all items in this sale
+        return $this->items->sum(function($item) {
+            //Revenue (subtotal)
+            $revenue = $item->subtotal;
+
+            //Cost
+            $cost = $item->quantity * $item->product->buying_price;
+
+            //Profit
+            return $revenue - $cost;
+        });
+    }
 }

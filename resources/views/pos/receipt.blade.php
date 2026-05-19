@@ -29,8 +29,8 @@
     <div class="receipt-card">
         <div class="text-center">
             <h2 style="margin: 0;">DIVINE FRESH MARKET</h2>
-            <p style="margin: 5px 0; font-size: 12px;">Dodoma, Tanzania</p>
-            <p style="margin: 5px 0; font-size: 12px;">Tel: +255 123 456 789</p>
+            <p style="margin: 5px 0; font-size: 12px;">Meliwa,Dodoma</p>
+            <p style="margin: 5px 0; font-size: 12px;">Tel: +255 712 825 489</p>
         </div>
 
         <div class="dashed-line"></div>
